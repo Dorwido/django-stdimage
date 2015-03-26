@@ -65,6 +65,21 @@ class StdImageFieldFile(ImageFieldFile):
         with Image.open(content) as img:
             file_format = img.format
 
+            if variation['rotate']:
+                exif = img._getexif()
+                if exif:
+                    orientation_key = 274 # cf ExifTags
+                    if orientation_key in exif:
+                        orientation = exif[orientation_key]
+                        rotate_values = {
+                            3: 180,
+                            6: 270,
+                            8: 90
+                        }
+                        if orientation in rotate_values:
+                            # Rotate
+                            img = img.rotate(rotate_values[orientation])
+
             if self.is_smaller(img, variation):
                 factor = 1
                 while img.size[0] / factor \
@@ -144,7 +159,9 @@ class StdImageField(ImageField):
         'width': float('inf'),
         'height': float('inf'),
         'crop': False,
+        'rotate': False,
         'resample': Image.ANTIALIAS
+
     }
 
     def __init__(self, verbose_name=None, name=None, variations=None,
@@ -152,7 +169,7 @@ class StdImageField(ImageField):
         """
         Standardized ImageField for Django
         Usage: StdImageField(upload_to='PATH',
-         variations={'thumbnail': {"width", "height", "crop", "resample"}})
+         variations={'thumbnail': {"width", "height", "crop", "rotate", "resample"}})
         :param variations: size variations of the image
         :rtype variations: StdImageField
         """
@@ -181,7 +198,7 @@ class StdImageField(ImageField):
     def add_variation(self, name, params):
         variation = self.def_variation.copy()
         if isinstance(params, (list, tuple)):
-            variation.update(dict(zip(("width", "height", "crop"), params)))
+            variation.update(dict(zip(("width", "height", "crop", "rotate"), params)))
         else:
             variation.update(params)
         variation["name"] = name
