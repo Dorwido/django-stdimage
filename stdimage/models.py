@@ -66,7 +66,10 @@ class StdImageFieldFile(ImageFieldFile):
             file_format = img.format
 
             if variation['rotate']:
-                exif = img._getexif()
+                try:
+                    exif = img._getexif()
+                except (AttributeError, IOError, KeyError, IndexError):
+                    exif = None
                 if exif:
                     orientation_key = 274 # cf ExifTags
                     if orientation_key in exif:
